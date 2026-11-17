@@ -3,3 +3,13 @@ dist/
 .env
 .env.*
 !.env.example
+design.md
+PROGRESS.md
+progress.md
+URL_Shortener_PRD.md
+URL_Shortener_TRD.md
+*PRD.md
+*prd.md
+*TRD.md
+*trd.md
+*trp.md
