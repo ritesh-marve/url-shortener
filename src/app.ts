@@ -1,11 +1,11 @@
 import express from "express";
-import healthRRoutes from "./routes/health.routes";
+import healthRoutes from "./routes/health.routes";
 
 const app = express();
 
 // Middleware: parses JSON request bodies
 app.use(express.json());
 
-app.use(healthRRoutes);
+app.use(healthRoutes);
 
 export default app;
