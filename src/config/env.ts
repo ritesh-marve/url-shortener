@@ -1,7 +1,8 @@
 import { z } from "zod";
-
+process.loadEnvFile();
 const envSchema = z.object({
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+    REDIS_URL: z.string().default("redis://localhost:6379"),
     PORT: z.coerce.number().default(3000),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });

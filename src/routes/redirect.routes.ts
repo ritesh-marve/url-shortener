@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { getLinkByCode } from "../modules/links/link.service.js";
+import { resolveDestination } from "../modules/links/link.service.js";
 
 const router = Router();
 
@@ -17,9 +18,10 @@ router.get("/:code", async (req: Request, res: Response, next: NextFunction) => 
     }
 
     try {
-        const link = await getLinkByCode(code);
 
-        if (!link) {
+        const destinationUrl = await resolveDestination(code);
+
+        if (!destinationUrl) {
             res.status(404).json({
                 error: {
                     code: "NOT_FOUND",
@@ -30,7 +32,7 @@ router.get("/:code", async (req: Request, res: Response, next: NextFunction) => 
         }
 
         // 302 Found: Temporary redirect
-        res.redirect(302, link.destinationUrl);
+        res.redirect(302, destinationUrl);
     } catch (err) {
         next(err);
     }
