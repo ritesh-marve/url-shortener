@@ -7,6 +7,17 @@ const DEFAULT_TTL_SECONDS = 3600;
 export const redis = new Redis(env.REDIS_URL, {
     // If Redis is unreachable, don't hang requests indefinitely
     maxRetriesPerRequest: 3,
+
+    // Control how ioredis reconnects when Redis is down
+    retryStrategy(times) {
+        if (times > 5) {
+            console.warn("⚠️ Redis unreachable after 5 attempts. Stopping reconnect.");
+            return null; // Returning null tells ioredis to STOP reconnecting
+        }
+        // Wait progressively longer: 500ms, 1000ms, 1500ms... up to 2s max
+        const delay = Math.min(times * 500, 2000);
+        return delay;
+    },
 });
 
 // Log Redis connection events
