@@ -1,6 +1,7 @@
 import { db } from "../../db/index.js";
 import { links } from "../../db/schema/links.js";
-import { eq } from "drizzle-orm";
+import { clickEvents } from "../../db/schema/clicks.js";
+import { eq, count, and, gte, lte } from "drizzle-orm";
 
 export type NewLink = {
     id: string;
@@ -19,4 +20,19 @@ export async function findLinkByCode(code: string) {
         .from(links)
         .where(eq(links.code, code));
     return link ?? null;
+}
+
+export async function getLinkAnalytics(
+    linkId: string,
+    from?: Date,
+    to?: Date
+): Promise<number> {
+    const conditions = [eq(clickEvents.linkId, linkId)];
+    if (from) conditions.push(gte(clickEvents.clickedAt, from));
+    if (to) conditions.push(lte(clickEvents.clickedAt, to));
+    const [result] = await db
+        .select({ totalClicks: count() })
+        .from(clickEvents)
+        .where(and(...conditions));
+    return result?.totalClicks ?? 0;
 }

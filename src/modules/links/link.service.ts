@@ -1,7 +1,7 @@
 import { getCachedlink, setCachedlink, CachedLink } from "../../cache/redis.js";
 import { randomUUID } from "crypto";
 import { generateCode } from "./codeGenerator.js";
-import { insertLink, findLinkByCode } from "./link.repository.js";
+import { insertLink, findLinkByCode, getLinkAnalytics } from "./link.repository.js";
 
 
 const MAX_RETRIES = 5;
@@ -62,3 +62,23 @@ export async function resolvelink(code: string): Promise<CachedLink | null> {
 export async function getLinkByCode(code: string) {
     return findLinkByCode(code);
 }
+
+
+export async function getAnalytics(code: string, from?: Date, to?: Date) {
+    const link = await findLinkByCode(code);
+    if (!link) {
+        return null;
+    }
+
+    const totalClicks = await getLinkAnalytics(link.id, from, to);
+
+    return {
+        code: link.code,
+        destinationUrl: link.destinationUrl,
+        totalClicks,
+        createdAt: link.createdAt,
+        from: from ? from.toISOString() : null,
+        to: to ? to.toISOString() : null,
+    };
+}
+
