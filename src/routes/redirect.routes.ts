@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getLinkByCode } from "../modules/links/link.service.js";
-import { resolveDestination } from "../modules/links/link.service.js";
-
+import { resolvelink } from "../modules/links/link.service.js";
+import { randomUUID } from "crypto";
+import { clickQueue } from "../queue/clickQueue.js";
 const router = Router();
 
 router.get("/:code", async (req: Request, res: Response, next: NextFunction) => {
@@ -19,9 +19,9 @@ router.get("/:code", async (req: Request, res: Response, next: NextFunction) => 
 
     try {
 
-        const destinationUrl = await resolveDestination(code);
+        const link = await resolvelink(code);
 
-        if (!destinationUrl) {
+        if (!link) {
             res.status(404).json({
                 error: {
                     code: "NOT_FOUND",
@@ -31,8 +31,20 @@ router.get("/:code", async (req: Request, res: Response, next: NextFunction) => 
             return;
         }
 
+        // 🚀 Non-blocking asynchronous click event push to BullMQ
+        clickQueue
+            .add("click", {
+                eventId: randomUUID(),
+                linkId: link.id,
+                clickedAt: new Date().toISOString(),
+            })
+            .catch((err) => {
+                // If queue fails, log error but DO NOT block the redirect!
+                console.error("⚠️ Failed to enqueue click event:", err.message);
+            });
+
         // 302 Found: Temporary redirect
-        res.redirect(302, destinationUrl);
+        res.redirect(302, link.destinationUrl);
     } catch (err) {
         next(err);
     }

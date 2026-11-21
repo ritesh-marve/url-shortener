@@ -3,6 +3,10 @@ import { env } from "../config/env.js";
 
 // Standard TTL: 3600 seconds = 1 hour
 const DEFAULT_TTL_SECONDS = 3600;
+export interface CachedLink {
+    id: string;
+    destinationUrl: string;
+}
 
 export const redis = new Redis(env.REDIS_URL, {
     // If Redis is unreachable, don't hang requests indefinitely
@@ -33,9 +37,11 @@ redis.on("error", (err) => {
  * Get cached destination URL by short code.
  * If Redis fails, silently return null so app falls back to PostgreSQL.
  */
-export async function getCachedUrl(code: string): Promise<string | null> {
+export async function getCachedlink(code: string): Promise<CachedLink | null> {
     try {
-        return await redis.get(`link:${code}`);
+        const data = await redis.get(`link:${code}`);
+        if (!data) return null;
+        return JSON.parse(data) as CachedLink;
     } catch (err) {
         console.warn(`Redis get failed for code "${code}", falling back to DB.`);
         return null;
@@ -46,14 +52,14 @@ export async function getCachedUrl(code: string): Promise<string | null> {
  * Cache destination URL with an expiration (TTL).
  * If Redis fails, log warning without throwing.
  */
-export async function setCachedUrl(
+export async function setCachedlink(
     code: string,
-    destinationUrl: string,
+    link: CachedLink,
     ttlSeconds: number = DEFAULT_TTL_SECONDS
 ): Promise<void> {
     try {
         // "EX" sets expiration in seconds so old links don't clog RAM forever
-        await redis.set(`link:${code}`, destinationUrl, "EX", ttlSeconds);
+        await redis.set(`link:${code}`, JSON.stringify(link), "EX", ttlSeconds);
     } catch (err) {
         console.warn(`Redis set failed for code "${code}".`);
     }

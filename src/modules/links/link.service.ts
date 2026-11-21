@@ -1,7 +1,8 @@
-import { getCachedUrl, setCachedUrl } from "../../cache/redis.js";
+import { getCachedlink, setCachedlink, CachedLink } from "../../cache/redis.js";
 import { randomUUID } from "crypto";
 import { generateCode } from "./codeGenerator.js";
 import { insertLink, findLinkByCode } from "./link.repository.js";
+
 
 const MAX_RETRIES = 5;
 
@@ -33,22 +34,29 @@ export async function createLink(destinationUrl: string) {
  * 2. If HIT: return cached URL immediately.
  * 3. If MISS: query PostgreSQL disk, populate Redis for future visitors, and return URL.
  */
-export async function resolveDestination(code: string): Promise<string | null> {
+export async function resolvelink(code: string): Promise<CachedLink | null> {
     // 1. Try Redis cache
-    const cachedUrl = await getCachedUrl(code);
-    if (cachedUrl) {
+    const cached = await getCachedlink(code);
+    if (cached) {
         console.log(`⚡ [Cache HIT] Redis resolved code: ${code}`);
-        return cachedUrl;
+        return cached;
     }
+
     console.log(`🐢 [Cache MISS] Querying PostgreSQL for code: ${code}`);
+
     // 2. Cache miss: fallback to database
     const link = await findLinkByCode(code);
     if (!link) {
         return null;
     }
+    const result: CachedLink = {
+        id: link.id,
+        destinationUrl: link.destinationUrl,
+    };
+
     // 3. Populate Redis so next visitor gets a cache hit
-    await setCachedUrl(code, link.destinationUrl);
-    return link.destinationUrl;
+    await setCachedlink(code, result);
+    return result;
 }
 
 export async function getLinkByCode(code: string) {
