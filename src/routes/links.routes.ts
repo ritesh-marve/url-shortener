@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { createLink, getAnalytics } from "../modules/links/link.service.js";
 import { env } from "../config/env.js";
+import { rateLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
@@ -14,8 +15,21 @@ const analyticsQuerySchema = z.object({
     to: z.string().datetime({ message: "Invalid 'to' ISO timestamp" }).optional(),
 });
 
+// Strict: 10 link creations per minute
+const createLinkLimiter = rateLimiter({
+    windowMs: 60 * 1000,
+    max: 10,
+    keyPrefix: "create",
+});
+// Moderate: 30 analytics queries per minute
+const analyticsLimiter = rateLimiter({
+    windowMs: 60 * 1000,
+    max: 30,
+    keyPrefix: "analytics",
+});
 
-router.post("/api/v1/links", async (req: Request, res: Response, next: NextFunction) => {
+
+router.post("/api/v1/links", createLinkLimiter, async (req: Request, res: Response, next: NextFunction) => {
     const result = createLinkSchema.safeParse(req.body);
 
     if (!result.success) {
@@ -42,7 +56,7 @@ router.post("/api/v1/links", async (req: Request, res: Response, next: NextFunct
 });
 
 
-router.get("/api/v1/links/:code/analytics", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/api/v1/links/:code/analytics", analyticsLimiter, async (req: Request, res: Response, next: NextFunction) => {
     const { code } = req.params;
 
     if (typeof code !== "string") {
