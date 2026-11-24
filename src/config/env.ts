@@ -1,5 +1,9 @@
 import { z } from "zod";
-process.loadEnvFile();
+try {
+    process.loadEnvFile();
+} catch {
+    // No .env file found; rely on system/Docker environment variables
+}
 const envSchema = z.object({
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
     REDIS_URL: z.string().default("redis://localhost:6379"),
