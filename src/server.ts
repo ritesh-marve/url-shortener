@@ -1,8 +1,9 @@
 import { env } from "./config/env.js";
 import app from "./app.js";
+import { logger } from "./observability/logger.js";
 
 const PORT = env.PORT;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info({ port: PORT }, "Server started")
 });

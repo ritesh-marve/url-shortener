@@ -40,6 +40,10 @@ export function rateLimiter(options: RateLimiterOptions) {
             res.setHeader("X-RateLimit-Remaining", Math.max(0, max - count));
 
             if (count > max) {
+                req.log.warn(
+                    { limiter: keyPrefix, max, windowSeconds },
+                    "Rate limit exceeded"
+                );
                 res.setHeader("Retry-After", windowSeconds);
                 res.status(429).json({
                     error: {
@@ -53,7 +57,10 @@ export function rateLimiter(options: RateLimiterOptions) {
             next();
         } catch (err) {
             // 🛡️ Resilient fallback: If Redis fails, log warning and let request proceed
-            console.warn("⚠️ Rate limiter Redis error, failing open:", err);
+            req.log.warn(
+                { err, limiter: keyPrefix },
+                "Rate limiter unavailable; allowing request"
+            );
             next();
         }
     };

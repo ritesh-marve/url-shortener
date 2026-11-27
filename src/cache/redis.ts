@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import { env } from "../config/env.js";
+import { logger } from "../observability/logger.js";
 
 // Standard TTL: 3600 seconds = 1 hour
 const DEFAULT_TTL_SECONDS = 3600;
@@ -15,7 +16,10 @@ export const redis = new Redis(env.REDIS_URL, {
     // Control how ioredis reconnects when Redis is down
     retryStrategy(times) {
         if (times > 5) {
-            console.warn("⚠️ Redis unreachable after 5 attempts. Stopping reconnect.");
+            logger.warn(
+                { attempts: times },
+                `Redis unreachable after ${times} attempts; stopping reconnect`
+            );
             return null; // Returning null tells ioredis to STOP reconnecting
         }
         // Wait progressively longer: 500ms, 1000ms, 1500ms... up to 2s max
@@ -26,11 +30,14 @@ export const redis = new Redis(env.REDIS_URL, {
 
 // Log Redis connection events
 redis.on("connect", () => {
-    console.log(" Connected to Redis");
+    logger.info("Connected to Redis");
 });
 
 redis.on("error", (err) => {
-    console.error("⚠️ Redis error (falling back to database):", err.message);
+    logger.warn(
+        { err },
+        "Redis error; cache fallback to PostgreSQL remains available"
+    );
 });
 
 /**
@@ -43,7 +50,7 @@ export async function getCachedlink(code: string): Promise<CachedLink | null> {
         if (!data) return null;
         return JSON.parse(data) as CachedLink;
     } catch (err) {
-        console.warn(`Redis get failed for code "${code}", falling back to DB.`);
+        logger.warn({ err, code }, "Redis cache lookup failed; falling back to PostgreSQL");
         return null;
     }
 }
@@ -61,6 +68,6 @@ export async function setCachedlink(
         // "EX" sets expiration in seconds so old links don't clog RAM forever
         await redis.set(`link:${code}`, JSON.stringify(link), "EX", ttlSeconds);
     } catch (err) {
-        console.warn(`Redis set failed for code "${code}".`);
+        logger.warn({ err, code }, "Redis cache write failed");
     }
 }

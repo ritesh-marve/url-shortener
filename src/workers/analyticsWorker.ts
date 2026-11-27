@@ -6,15 +6,20 @@ import {
 } from "../queue/clickQueue.js";
 import { db } from "../db/index.js";
 import { clickEvents } from "../db/schema/clicks.js";
+import { logger } from "../observability/logger.js";
 
-console.log("👷 Starting Analytics Worker...");
+
+logger.info("Starting analytics worker");
 
 export const analyticsWorker = new Worker<ClickEventJob>(
     CLICK_QUEUE_NAME,
     async (job) => {
         const { eventId, linkId, clickedAt } = job.data;
 
-        console.log(`📥 [Job ${job.id}] Processing click for link: ${linkId}`);
+        logger.debug(
+            { jobId: job.id, linkId },
+            "Processing click event"
+        );
 
         // Insert into PostgreSQL idempotently (ignore duplicates on retry)
         await db
@@ -26,7 +31,10 @@ export const analyticsWorker = new Worker<ClickEventJob>(
             })
             .onConflictDoNothing({ target: clickEvents.eventId });
 
-        console.log(`✅ [Job ${job.id}] Click event persisted to database: ${eventId}`);
+        logger.debug(
+            { jobId: job.id, eventId },
+            "Click event persisted"
+        );
     },
     {
         connection: queueRedisConnection,
@@ -36,9 +44,23 @@ export const analyticsWorker = new Worker<ClickEventJob>(
 );
 
 analyticsWorker.on("ready", () => {
-    console.log("🚀 Analytics Worker is ready and listening for click jobs!");
+    logger.info("Analytics worker is ready and listening for click jobs");
 });
 
 analyticsWorker.on("failed", (job, err) => {
-    console.error(`❌ Job ${job?.id} failed:`, err.message);
+    logger.error(
+        {
+            err,
+            jobId: job?.id,
+            linkId: job?.data.linkId,
+        },
+        "Analytics job failed"
+    );
+});
+
+analyticsWorker.on("error", (err) => {
+    logger.error(
+        { err },
+        "Analytics worker infrastructure error"
+    );
 });
