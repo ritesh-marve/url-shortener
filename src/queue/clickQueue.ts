@@ -15,6 +15,8 @@ export const CLICK_QUEUE_NAME = "click-events";
 export const queueRedisConnection = {
     url: env.REDIS_URL,
     maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    ...(env.REDIS_URL.startsWith("rediss://") && { tls: {} }),
 };
 
 // Queue instance to push jobs into

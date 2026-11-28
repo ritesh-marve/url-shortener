@@ -6,7 +6,7 @@ export function errorHandler(
     res: Response,
     next: NextFunction
 ): void {
-    console.error(err.stack);
+    req.log.error({ err }, "Unhandled request error")
 
     res.status(500).json({
         error: {

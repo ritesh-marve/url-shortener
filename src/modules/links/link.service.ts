@@ -2,7 +2,7 @@ import { getCachedlink, setCachedlink, CachedLink } from "../../cache/redis.js";
 import { randomUUID } from "crypto";
 import { generateCode } from "./codeGenerator.js";
 import { insertLink, findLinkByCode, getLinkAnalytics } from "./link.repository.js";
-
+import { logger } from "../../observability/logger.js";
 
 const MAX_RETRIES = 5;
 
@@ -38,11 +38,11 @@ export async function resolvelink(code: string): Promise<CachedLink | null> {
     // 1. Try Redis cache
     const cached = await getCachedlink(code);
     if (cached) {
-        console.log(`⚡ [Cache HIT] Redis resolved code: ${code}`);
+        logger.debug({ code }, "Redis cache hit");
         return cached;
     }
 
-    console.log(`🐢 [Cache MISS] Querying PostgreSQL for code: ${code}`);
+    logger.debug({ code }, "Redis cache miss; querying PostgreSQL");
 
     // 2. Cache miss: fallback to database
     const link = await findLinkByCode(code);
