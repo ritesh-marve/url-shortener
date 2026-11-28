@@ -1,766 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t } catch (e) { }</script>
-    <title>Shrtn: URL shortener and analytics</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap"
-        rel="stylesheet">
-    <style>
-        :root {
-            --bg: #F3F4F1;
-            --tile: #FFFFFF;
-            --line: #E1E4DF;
-            --field: #F7F8F6;
-            --ink: #12262B;
-            --muted: #5F6F72;
-            --accent: #3340E8;
-            --link: #3340E8;
-            --ok: #17915C;
-            --bad: #B8321F;
-            --bad-bg: #FDECE9;
-            --btn: #12262B;
-            --on-btn: #FFFFFF;
-            color-scheme: light;
-            --sans: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif;
-            --mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        }
-
-        @media (prefers-color-scheme:dark) {
-            :root:not([data-theme="light"]) {
-                --bg: #0D1315;
-                --tile: #141C1F;
-                --line: #243034;
-                --field: #0D1315;
-                --ink: #E7EEEE;
-                --muted: #8FA0A2;
-                --accent: #4452F2;
-                --link: #97A1FF;
-                --ok: #3DD598;
-                --bad: #FF8878;
-                --bad-bg: #2A1715;
-                --btn: #E7EEEE;
-                --on-btn: #0D1315;
-                color-scheme: dark
-            }
-        }
-
-        :root[data-theme="dark"] {
-            --bg: #0D1315;
-            --tile: #141C1F;
-            --line: #243034;
-            --field: #0D1315;
-            --ink: #E7EEEE;
-            --muted: #8FA0A2;
-            --accent: #4452F2;
-            --link: #97A1FF;
-            --ok: #3DD598;
-            --bad: #FF8878;
-            --bad-bg: #2A1715;
-            --btn: #E7EEEE;
-            --on-btn: #0D1315;
-            color-scheme: dark
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--ink);
-            font-family: var(--sans);
-            font-size: 16px;
-            line-height: 1.5;
-            padding: 40px 20px 72px;
-            -webkit-font-smoothing: antialiased
-        }
-
-        ::selection {
-            background: var(--accent);
-            color: #fff
-        }
-
-        .wrap {
-            max-width: 1040px;
-            margin: 0 auto
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(12, minmax(0, 1fr));
-            gap: 14px
-        }
-
-        /* tiles */
-        .tile {
-            background: var(--tile);
-            border: 1px solid var(--line);
-            padding: 24px;
-            border-radius: 20px;
-            min-width: 0;
-            display: flex;
-            flex-direction: column
-        }
-
-        .tile.bare {
-            background: none;
-            border: 0;
-            padding: 0
-        }
-
-        .t-title {
-            grid-column: span 8;
-            justify-content: flex-end;
-            padding-bottom: 20px
-        }
-
-        .t-status {
-            grid-column: span 4;
-            align-items: flex-end;
-            justify-content: space-between;
-            padding-bottom: 20px
-        }
-
-        .t-short {
-            grid-column: span 7
-        }
-
-        .t-result {
-            grid-column: span 5
-        }
-
-        .t-form {
-            grid-column: span 5;
-            grid-row: span 4
-        }
-
-        .t-clicks {
-            grid-column: span 7;
-            min-height: 210px
-        }
-
-        .t-dest {
-            grid-column: span 7
-        }
-
-        .t-created {
-            grid-column: span 4
-        }
-
-        .t-code {
-            grid-column: span 3
-        }
-
-        .t-range {
-            grid-column: span 7
-        }
-
-        .err {
-            grid-column: 1/-1
-        }
-
-        h1 {
-            font-size: clamp(52px, 9vw, 96px);
-            font-weight: 500;
-            letter-spacing: -.05em;
-            line-height: .9
-        }
-
-        .sub {
-            margin-top: 16px;
-            color: var(--muted);
-            font-size: 17px;
-            max-width: 34ch
-        }
-
-        .h {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 18px
-        }
-
-        .k {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--muted);
-            margin-bottom: 6px
-        }
-
-        .v {
-            font-family: var(--mono);
-            font-size: 14px;
-            word-break: break-all
-        }
-
-        .big {
-            font-family: var(--mono);
-            font-weight: 300;
-            font-size: clamp(72px, 12vw, 148px);
-            line-height: 1;
-            letter-spacing: -.06em;
-            margin-top: auto
-        }
-
-        .t-clicks {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff
-        }
-
-        .t-clicks .k {
-            color: rgba(255, 255, 255, .78)
-        }
-
-        /* status */
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            font-weight: 500
-        }
-
-        .status i {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: var(--muted);
-            display: inline-block
-        }
-
-        .status.on i {
-            background: var(--ok)
-        }
-
-        .status.off i {
-            background: var(--bad)
-        }
-
-        /* forms */
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--muted);
-            margin-bottom: 6px
-        }
-
-        input {
-            width: 100%;
-            font-family: var(--mono);
-            font-size: 14px;
-            padding: 12px 14px;
-            border: 1px solid var(--line);
-            background: var(--field);
-            color: var(--ink);
-            border-radius: 12px;
-            outline: none;
-            transition: border-color .15s
-        }
-
-        input:focus {
-            border-color: var(--accent)
-        }
-
-        input::placeholder {
-            color: var(--muted);
-            opacity: .7
-        }
-
-        .field {
-            margin-bottom: 14px
-        }
-
-        .btn {
-            font-family: var(--sans);
-            font-weight: 500;
-            font-size: 15px;
-            padding: 12px 22px;
-            border: 1px solid var(--btn);
-            background: var(--btn);
-            color: var(--on-btn);
-            cursor: pointer;
-            border-radius: 999px;
-            transition: transform .08s, opacity .15s;
-            white-space: nowrap
-        }
-
-        .btn:hover:not(:disabled) {
-            opacity: .88
-        }
-
-        .btn:active:not(:disabled) {
-            transform: translateY(1px)
-        }
-
-        .btn:disabled {
-            opacity: .55;
-            cursor: wait
-        }
-
-        .btn.ghost {
-            background: transparent;
-            color: var(--ink);
-            border-color: var(--line)
-        }
-
-        .btn.sm {
-            padding: 8px 16px;
-            font-size: 14px
-        }
-
-        .btn:focus-visible,
-        a:focus-visible,
-        input:focus-visible,
-        .x:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px
-        }
-
-        .shorten-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: auto
-        }
-
-        .shorten-row input {
-            flex: 1 1 200px;
-            width: auto
-        }
-
-        .t-form form {
-            display: flex;
-            flex-direction: column;
-            flex: 1
-        }
-
-        .t-form .btn {
-            margin-top: auto;
-            align-self: flex-start
-        }
-
-        /* result */
-        .t-result.empty {
-            background: none;
-            border-style: dashed
-        }
-
-        .t-result.live {
-            border-color: var(--accent)
-        }
-
-        .empty-msg {
-            color: var(--muted);
-            margin-top: auto;
-            margin-bottom: auto;
-            max-width: 28ch
-        }
-
-        .t-result a {
-            display: block;
-            font-family: var(--mono);
-            font-size: clamp(16px, 2.4vw, 20px);
-            color: var(--link);
-            word-break: break-all;
-            margin-bottom: 6px;
-            text-decoration-thickness: 1px;
-            text-underline-offset: 4px
-        }
-
-        .dest {
-            font-family: var(--mono);
-            font-size: 12px;
-            color: var(--muted);
-            word-break: break-all
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 18px
-        }
-
-        /* errors */
-        .err {
-            background: var(--bad-bg);
-            color: var(--bad);
-            border: 1px solid var(--bad);
-            padding: 14px 18px;
-            border-radius: 14px;
-            display: flex;
-            gap: 12px;
-            justify-content: space-between;
-            align-items: flex-start;
-            font-size: 15px
-        }
-
-        .err b {
-            display: block;
-            font-weight: 600
-        }
-
-        .err .x {
-            font-size: 20px;
-            line-height: 1;
-            background: none;
-            border: 0;
-            color: inherit;
-            cursor: pointer;
-            padding: 0 4px;
-            border-radius: 6px
-        }
-
-        [hidden] {
-            display: none !important
-        }
-
-        @media(max-width:900px) {
-            .grid {
-                grid-template-columns: repeat(6, minmax(0, 1fr))
-            }
-
-            .t-title,
-            .t-status,
-            .t-short,
-            .t-result,
-            .t-form,
-            .t-clicks,
-            .t-dest,
-            .t-range {
-                grid-column: span 6
-            }
-
-            .t-status {
-                flex-direction: row;
-                align-items: center;
-                padding-bottom: 6px
-            }
-
-            .t-form {
-                grid-row: auto
-            }
-
-            .t-created,
-            .t-code {
-                grid-column: span 3
-            }
-
-            .t-form .btn {
-                margin-top: 4px
-            }
-        }
-
-        @media(max-width:560px) {
-            body {
-                padding: 28px 14px 56px
-            }
-
-            .t-created,
-            .t-code {
-                grid-column: span 6
-            }
-
-            .tile {
-                padding: 20px
-            }
-
-            .tile.bare {
-                padding: 0
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<title>Shrtn: URL shortener and analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F4F1; --tile:#FFFFFF; --line:#E1E4DF; --field:#F7F8F6;
+  --ink:#12262B; --muted:#5F6F72; --accent:#3340E8; --link:#3340E8;
+  --ok:#17915C; --bad:#B8321F; --bad-bg:#FDECE9; --btn:#12262B; --on-btn:#FFFFFF;
+  color-scheme:light;
+  --sans:'Schibsted Grotesk','Helvetica Neue',Arial,sans-serif;
+  --mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#0D1315;--tile:#141C1F;--line:#243034;--field:#0D1315;--ink:#E7EEEE;--muted:#8FA0A2;--accent:#4452F2;--link:#97A1FF;--ok:#3DD598;--bad:#FF8878;--bad-bg:#2A1715;--btn:#E7EEEE;--on-btn:#0D1315;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#0D1315;--tile:#141C1F;--line:#243034;--field:#0D1315;--ink:#E7EEEE;--muted:#8FA0A2;--accent:#4452F2;--link:#97A1FF;--ok:#3DD598;--bad:#FF8878;--bad-bg:#2A1715;--btn:#E7EEEE;--on-btn:#0D1315;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;padding:40px 20px 72px;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:#fff}
+.wrap{max-width:1040px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+
+/* tiles */
+.tile{background:var(--tile);border:1px solid var(--line);padding:24px;border-radius:20px;min-width:0;display:flex;flex-direction:column}
+.tile.bare{background:none;border:0;padding:0}
+.t-title{grid-column:span 8;justify-content:flex-end;padding-bottom:20px}
+.t-status{grid-column:span 4;align-items:flex-end;justify-content:space-between;padding-bottom:20px}
+.t-short{grid-column:span 7}
+.t-result{grid-column:span 5}
+.t-form{grid-column:span 5;grid-row:span 4}
+.t-clicks{grid-column:span 7;min-height:210px}
+.t-dest{grid-column:span 7}
+.t-created{grid-column:span 4}
+.t-code{grid-column:span 3}
+.t-range{grid-column:span 7}
+.err{grid-column:1/-1}
+
+h1{font-size:clamp(52px,9vw,96px);font-weight:500;letter-spacing:-.05em;line-height:.9}
+.sub{margin-top:16px;color:var(--muted);font-size:17px;max-width:34ch}
+.h{font-size:15px;font-weight:600;margin-bottom:18px}
+.k{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.v{font-family:var(--mono);font-size:14px;word-break:break-all}
+.big{font-family:var(--mono);font-weight:300;font-size:clamp(72px,12vw,148px);line-height:1;letter-spacing:-.06em;margin-top:auto}
+.t-clicks{background:var(--accent);border-color:var(--accent);color:#fff}
+.t-clicks .k{color:rgba(255,255,255,.78)}
+
+/* status */
+.status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block}
+.status.on i{background:var(--ok)} .status.off i{background:var(--bad)}
+
+/* forms */
+label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
+input{width:100%;font-family:var(--mono);font-size:14px;padding:12px 14px;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:12px;outline:none;transition:border-color .15s}
+input:focus{border-color:var(--accent)}
+input::placeholder{color:var(--muted);opacity:.7}
+.field{margin-bottom:14px}
+.btn{font-family:var(--sans);font-weight:500;font-size:15px;padding:12px 22px;border:1px solid var(--btn);background:var(--btn);color:var(--on-btn);cursor:pointer;border-radius:999px;transition:transform .08s,opacity .15s;white-space:nowrap}
+.btn:hover:not(:disabled){opacity:.88}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.sm{padding:8px 16px;font-size:14px}
+.btn:focus-visible,a:focus-visible,input:focus-visible,.x:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.shorten-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}
+.shorten-row input{flex:1 1 200px;width:auto}
+.t-form form{display:flex;flex-direction:column;flex:1}
+.t-form .btn{margin-top:auto;align-self:flex-start}
+
+/* result */
+.t-result.empty{background:none;border-style:dashed}
+.t-result.live{border-color:var(--accent)}
+.empty-msg{color:var(--muted);margin-top:auto;margin-bottom:auto;max-width:28ch}
+.t-result a{display:block;font-family:var(--mono);font-size:clamp(16px,2.4vw,20px);color:var(--link);word-break:break-all;margin-bottom:6px;text-decoration-thickness:1px;text-underline-offset:4px}
+.dest{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+
+/* errors */
+.err{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad);padding:14px 18px;border-radius:14px;display:flex;gap:12px;justify-content:space-between;align-items:flex-start;font-size:15px}
+.err b{display:block;font-weight:600}
+.err .x{font-size:20px;line-height:1;background:none;border:0;color:inherit;cursor:pointer;padding:0 4px;border-radius:6px}
+[hidden]{display:none!important}
+
+@media(max-width:900px){
+  .grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .t-title,.t-status,.t-short,.t-result,.t-form,.t-clicks,.t-dest,.t-range{grid-column:span 6}
+  .t-status{flex-direction:row;align-items:center;padding-bottom:6px}
+  .t-form{grid-row:auto}
+  .t-created,.t-code{grid-column:span 3}
+  .t-form .btn{margin-top:4px}
+}
+@media(max-width:560px){
+  body{padding:28px 14px 56px}
+  .t-created,.t-code{grid-column:span 6}
+  .tile{padding:20px}
+  .tile.bare{padding:0}
+}
+</style>
 </head>
-
 <body>
-    <main class="wrap">
-        <div class="grid">
+<main class="wrap">
+<div class="grid">
 
-            <section class="tile bare t-title">
-                <h1>Shrtn</h1>
-                <p class="sub">Redis-cached redirects &amp; async click analytics</p>
-            </section>
+  <section class="tile bare t-title">
+    <h1>Shrtn</h1>
+    <p class="sub">Redis-cached redirects &amp; async click analytics</p>
+  </section>
 
-            <section class="tile bare t-status">
-                <div id="health" class="status" role="status"><i></i><span>Checking…</span></div>
-                <button id="themeBtn" class="btn ghost sm" type="button" aria-label="Toggle dark mode">Dark</button>
-            </section>
+  <section class="tile bare t-status">
+    <div id="health" class="status" role="status"><i></i><span>Checking…</span></div>
+    <button id="themeBtn" class="btn ghost sm" type="button" aria-label="Toggle dark mode">Dark</button>
+  </section>
 
-            <div id="error" class="err" role="alert" hidden>
-                <div><b id="errTitle"></b><span id="errMsg"></span></div>
-                <button class="x" id="errClose" aria-label="Dismiss error">×</button>
-            </div>
+  <div id="error" class="err" role="alert" hidden>
+    <div><b id="errTitle"></b><span id="errMsg"></span></div>
+    <button class="x" id="errClose" aria-label="Dismiss error">×</button>
+  </div>
 
-            <section class="tile t-short" aria-labelledby="h-short">
-                <h2 class="h" id="h-short">Shorten a link</h2>
-                <form id="shortenForm" class="shorten-row" novalidate>
-                    <input id="urlInput" type="url" inputmode="url" placeholder="https://..." autocomplete="off"
-                        aria-label="URL to shorten" required>
-                    <button id="shortenBtn" class="btn" type="submit">Shorten</button>
-                </form>
-            </section>
+  <section class="tile t-short" aria-labelledby="h-short">
+    <h2 class="h" id="h-short">Shorten a link</h2>
+    <form id="shortenForm" class="shorten-row" novalidate>
+      <input id="urlInput" type="url" inputmode="url" placeholder="https://..." autocomplete="off" aria-label="URL to shorten" required>
+      <button id="shortenBtn" class="btn" type="submit">Shorten</button>
+    </form>
+  </section>
 
-            <section id="resultTile" class="tile t-result empty" aria-live="polite">
-                <h2 class="h">Short link</h2>
-                <p id="resultEmpty" class="empty-msg">Paste a URL and shorten it. Your link appears here.</p>
-                <div id="resultBody" hidden>
-                    <a id="shortLink" href="#" target="_blank" rel="noopener"></a>
-                    <div class="dest" id="destLine"></div>
-                    <div class="actions">
-                        <button id="copyBtn" class="btn sm" type="button">Copy</button>
-                        <button id="viewBtn" class="btn ghost sm" type="button">View analytics</button>
-                    </div>
-                </div>
-            </section>
+  <section id="resultTile" class="tile t-result empty" aria-live="polite">
+    <h2 class="h">Short link</h2>
+    <p id="resultEmpty" class="empty-msg">Paste a URL and shorten it. Your link appears here.</p>
+    <div id="resultBody" hidden>
+      <a id="shortLink" href="#" target="_blank" rel="noopener"></a>
+      <div class="dest" id="destLine"></div>
+      <div class="actions">
+        <button id="copyBtn" class="btn sm" type="button">Copy</button>
+        <button id="viewBtn" class="btn ghost sm" type="button">View analytics</button>
+      </div>
+    </div>
+  </section>
 
-            <section class="tile t-form" aria-labelledby="h-stats">
-                <h2 class="h" id="h-stats">Link analytics</h2>
-                <form id="statsForm" novalidate>
-                    <div class="field">
-                        <label for="codeInput">Short code or URL</label>
-                        <input id="codeInput" type="text" placeholder="aB3x9Kq" autocomplete="off" spellcheck="false">
-                    </div>
-                    <div class="field"><label for="fromInput">From (optional)</label><input id="fromInput"
-                            type="datetime-local"></div>
-                    <div class="field"><label for="toInput">To (optional)</label><input id="toInput"
-                            type="datetime-local"></div>
-                    <button id="statsBtn" class="btn" type="submit">Check stats</button>
-                </form>
-            </section>
+  <section class="tile t-form" aria-labelledby="h-stats">
+    <h2 class="h" id="h-stats">Link analytics</h2>
+    <form id="statsForm" novalidate>
+      <div class="field">
+        <label for="codeInput">Short code or URL</label>
+        <input id="codeInput" type="text" placeholder="aB3x9Kq" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field"><label for="fromInput">From (optional)</label><input id="fromInput" type="datetime-local"></div>
+      <div class="field"><label for="toInput">To (optional)</label><input id="toInput" type="datetime-local"></div>
+      <button id="statsBtn" class="btn" type="submit">Check stats</button>
+    </form>
+  </section>
 
-            <section class="tile t-clicks">
-                <div class="k">Total clicks</div>
-                <div class="big" id="sClicks">–</div>
-            </section>
-            <section class="tile t-dest">
-                <div class="k">Destination URL</div>
-                <div class="v" id="sDest">–</div>
-            </section>
-            <section class="tile t-created">
-                <div class="k">Created</div>
-                <div class="v" id="sCreated">–</div>
-            </section>
-            <section class="tile t-code">
-                <div class="k">Code</div>
-                <div class="v" id="sCode">–</div>
-            </section>
-            <section class="tile t-range">
-                <div class="k">Date range</div>
-                <div class="v" id="sRange">All time</div>
-            </section>
+  <section class="tile t-clicks"><div class="k">Total clicks</div><div class="big" id="sClicks">–</div></section>
+  <section class="tile t-dest"><div class="k">Destination URL</div><div class="v" id="sDest">–</div></section>
+  <section class="tile t-created"><div class="k">Created</div><div class="v" id="sCreated">–</div></section>
+  <section class="tile t-code"><div class="k">Code</div><div class="v" id="sCode">–</div></section>
+  <section class="tile t-range"><div class="k">Date range</div><div class="v" id="sRange">All time</div></section>
 
-        </div>
-    </main>
+</div>
+</main>
 
-    <script>
-        (function () {
-            const $ = id => document.getElementById(id);
-            const API = '/api/v1/links';
-            let lastShortUrl = '';
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const API = '/api/v1/links';
+  let lastShortUrl = '';
 
-            /* ---------- helpers ---------- */
-            function showError(title, msg) {
-                $('errTitle').textContent = title;
-                $('errMsg').textContent = msg;
-                $('error').hidden = false;
-                $('error').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-            function clearError() { $('error').hidden = true; }
-            $('errClose').addEventListener('click', clearError);
+  /* ---------- helpers ---------- */
+  function showError(title, msg){
+    $('errTitle').textContent = title;
+    $('errMsg').textContent = msg;
+    $('error').hidden = false;
+    $('error').scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+  function clearError(){ $('error').hidden = true; }
+  $('errClose').addEventListener('click', clearError);
 
-            async function readError(res) {
-                let message = res.statusText || 'Something went wrong.';
-                try {
-                    const j = await res.json();
-                    if (j && j.error && j.error.message) message = j.error.message;
-                } catch (e) { }
-                if (res.status === 429) {
-                    const ra = res.headers.get('Retry-After');
-                    let wait = ' Wait a moment and try again.';
-                    if (ra) {
-                        const n = Number(ra);
-                        if (!isNaN(n)) wait = ' Try again in ' + n + ' second' + (n === 1 ? '' : 's') + '.';
-                        else { const d = new Date(ra); if (!isNaN(d)) wait = ' Try again after ' + d.toLocaleTimeString() + '.'; }
-                    }
-                    return { title: 'Too many requests', msg: message + wait };
-                }
-                const title = res.status === 404 ? 'Link not found'
-                    : res.status === 400 ? 'That request isn’t valid'
-                        : 'Request failed (' + res.status + ')';
-                return { title, msg: message };
-            }
+  async function readError(res){
+    let message = res.statusText || 'Something went wrong.';
+    try{
+      const j = await res.json();
+      if (j && j.error && j.error.message) message = j.error.message;
+    }catch(e){}
+    if (res.status === 429){
+      const ra = res.headers.get('Retry-After');
+      let wait = ' Wait a moment and try again.';
+      if (ra){
+        const n = Number(ra);
+        if (!isNaN(n)) wait = ' Try again in ' + n + ' second' + (n === 1 ? '' : 's') + '.';
+        else { const d = new Date(ra); if (!isNaN(d)) wait = ' Try again after ' + d.toLocaleTimeString() + '.'; }
+      }
+      return {title: 'Too many requests', msg: message + wait};
+    }
+    const title = res.status === 404 ? 'Link not found'
+                : res.status === 400 ? 'That request isn’t valid'
+                : 'Request failed (' + res.status + ')';
+    return {title, msg: message};
+  }
 
-            function setBusy(btn, busy, idle, loading) {
-                btn.disabled = busy;
-                btn.textContent = busy ? loading : idle;
-            }
+  function setBusy(btn, busy, idle, loading){
+    btn.disabled = busy;
+    btn.textContent = busy ? loading : idle;
+  }
 
-            function extractCode(raw) {
-                let v = raw.trim();
-                if (!v) return '';
-                try { v = new URL(v).pathname; }
-                catch (e) {
-                    v = v.replace(/^[a-z]+:\/\//i, '');
-                    const slash = v.indexOf('/');
-                    if (slash !== -1) v = v.slice(slash);
-                }
-                v = v.split(/[?#]/)[0];
-                const parts = v.split('/').filter(Boolean);
-                return parts.length ? parts[parts.length - 1] : '';
-            }
+  function extractCode(raw){
+    let v = raw.trim();
+    if (!v) return '';
+    try{ v = new URL(v).pathname; }
+    catch(e){
+      v = v.replace(/^[a-z]+:\/\//i, '');
+      const slash = v.indexOf('/');
+      if (slash !== -1) v = v.slice(slash);
+    }
+    v = v.split(/[?#]/)[0];
+    const parts = v.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : '';
+  }
 
-            /* ---------- health ---------- */
-            async function checkHealth() {
-                const b = $('health'), t = b.querySelector('span');
-                try {
-                    const r = await fetch('/health', { cache: 'no-store' });
-                    if (!r.ok) throw new Error();
-                    b.className = 'status on'; t.textContent = 'API online';
-                } catch (e) {
-                    b.className = 'status off'; t.textContent = 'API offline';
-                }
-            }
+  /* ---------- health ---------- */
+  async function checkHealth(){
+    const b = $('health'), t = b.querySelector('span');
+    try{
+      const r = await fetch('/health', {cache:'no-store'});
+      if (!r.ok) throw new Error();
+      b.className = 'status on'; t.textContent = 'API online';
+    }catch(e){
+      b.className = 'status off'; t.textContent = 'API offline';
+    }
+  }
 
-            /* ---------- shorten ---------- */
-            function setResult(d) {
-                const tile = $('resultTile');
-                if (!d) { tile.className = 'tile t-result empty'; $('resultEmpty').hidden = false; $('resultBody').hidden = true; return; }
-                lastShortUrl = d.shortUrl;
-                const a = $('shortLink');
-                a.href = d.shortUrl; a.textContent = d.shortUrl; a.dataset.code = d.code;
-                $('destLine').textContent = d.destinationUrl;
-                $('copyBtn').textContent = 'Copy';
-                tile.className = 'tile t-result live';
-                $('resultEmpty').hidden = true; $('resultBody').hidden = false;
-            }
+  /* ---------- shorten ---------- */
+  function setResult(d){
+    const tile = $('resultTile');
+    if (!d){ tile.className = 'tile t-result empty'; $('resultEmpty').hidden = false; $('resultBody').hidden = true; return; }
+    lastShortUrl = d.shortUrl;
+    const a = $('shortLink');
+    a.href = d.shortUrl; a.textContent = d.shortUrl; a.dataset.code = d.code;
+    $('destLine').textContent = d.destinationUrl;
+    $('copyBtn').textContent = 'Copy';
+    tile.className = 'tile t-result live';
+    $('resultEmpty').hidden = true; $('resultBody').hidden = false;
+  }
 
-            $('shortenForm').addEventListener('submit', async e => {
-                e.preventDefault();
-                clearError();
-                const url = $('urlInput').value.trim();
-                if (!url) { showError('No URL entered', 'Enter the URL you want to shorten, starting with https://.'); return; }
-                setBusy($('shortenBtn'), true, 'Shorten', 'Shortening…');
-                setResult(null);
-                try {
-                    const res = await fetch(API, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                        body: JSON.stringify({ url })
-                    });
-                    if (!res.ok) { const er = await readError(res); showError(er.title, er.msg); return; }
-                    setResult(await res.json());
-                } catch (err) {
-                    showError('Can’t reach the API', 'Check your connection and try again.');
-                } finally {
-                    setBusy($('shortenBtn'), false, 'Shorten', 'Shortening…');
-                }
-            });
+  $('shortenForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearError();
+    const url = $('urlInput').value.trim();
+    if (!url){ showError('No URL entered', 'Enter the URL you want to shorten, starting with https://.'); return; }
+    setBusy($('shortenBtn'), true, 'Shorten', 'Shortening…');
+    setResult(null);
+    try{
+      const res = await fetch(API, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify({url})
+      });
+      if (!res.ok){ const er = await readError(res); showError(er.title, er.msg); return; }
+      setResult(await res.json());
+    }catch(err){
+      showError('Can’t reach the API', 'Check your connection and try again.');
+    }finally{
+      setBusy($('shortenBtn'), false, 'Shorten', 'Shortening…');
+    }
+  });
 
-            $('copyBtn').addEventListener('click', async () => {
-                const btn = $('copyBtn');
-                try {
-                    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(lastShortUrl);
-                    else {
-                        const ta = document.createElement('textarea');
-                        ta.value = lastShortUrl; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-                    }
-                    btn.textContent = 'Copied';
-                } catch (e) { btn.textContent = 'Copy failed'; }
-                setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
-            });
+  $('copyBtn').addEventListener('click', async () => {
+    const btn = $('copyBtn');
+    try{
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(lastShortUrl);
+      else {
+        const ta = document.createElement('textarea');
+        ta.value = lastShortUrl; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      btn.textContent = 'Copied';
+    }catch(e){ btn.textContent = 'Copy failed'; }
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+  });
 
-            $('viewBtn').addEventListener('click', () => {
-                $('codeInput').value = $('shortLink').dataset.code || extractCode(lastShortUrl);
-                $('fromInput').value = ''; $('toInput').value = '';
-                $('statsForm').requestSubmit();
-                $('h-stats').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
+  $('viewBtn').addEventListener('click', () => {
+    $('codeInput').value = $('shortLink').dataset.code || extractCode(lastShortUrl);
+    $('fromInput').value = ''; $('toInput').value = '';
+    $('statsForm').requestSubmit();
+    $('h-stats').scrollIntoView({behavior:'smooth', block:'start'});
+  });
 
-            /* ---------- analytics ---------- */
-            $('codeInput').addEventListener('blur', () => {
-                const c = extractCode($('codeInput').value);
-                if (c) $('codeInput').value = c;
-            });
+  /* ---------- analytics ---------- */
+  $('codeInput').addEventListener('blur', () => {
+    const c = extractCode($('codeInput').value);
+    if (c) $('codeInput').value = c;
+  });
 
-            const fmt = iso => {
-                const d = new Date(iso);
-                return isNaN(d) ? String(iso) : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-            };
-            function resetStats() {
-                $('sClicks').textContent = '–'; $('sDest').textContent = '–';
-                $('sCreated').textContent = '–'; $('sCode').textContent = '–';
-                $('sRange').textContent = 'All time';
-            }
-            function countTo(el, n) {
-                const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                if (reduce || !isFinite(n) || n < 2) { el.textContent = Number(n).toLocaleString(); return; }
-                const t0 = performance.now(), dur = 700;
-                function step(t) {
-                    const p = Math.min(1, (t - t0) / dur);
-                    el.textContent = Math.round(n * (1 - Math.pow(1 - p, 3))).toLocaleString();
-                    if (p < 1) requestAnimationFrame(step);
-                }
-                requestAnimationFrame(step);
-            }
+  const fmt = iso => {
+    const d = new Date(iso);
+    return isNaN(d) ? String(iso) : d.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+  };
+  function resetStats(){
+    $('sClicks').textContent = '–'; $('sDest').textContent = '–';
+    $('sCreated').textContent = '–'; $('sCode').textContent = '–';
+    $('sRange').textContent = 'All time';
+  }
+  function countTo(el, n){
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !isFinite(n) || n < 2){ el.textContent = Number(n).toLocaleString(); return; }
+    const t0 = performance.now(), dur = 700;
+    function step(t){
+      const p = Math.min(1, (t - t0) / dur);
+      el.textContent = Math.round(n * (1 - Math.pow(1 - p, 3))).toLocaleString();
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
 
-            $('statsForm').addEventListener('submit', async e => {
-                e.preventDefault();
-                clearError();
-                const code = extractCode($('codeInput').value);
-                if (!code) { showError('No code entered', 'Enter a short code or paste a full short URL.'); return; }
-                $('codeInput').value = code;
+  $('statsForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearError();
+    const code = extractCode($('codeInput').value);
+    if (!code){ showError('No code entered', 'Enter a short code or paste a full short URL.'); return; }
+    $('codeInput').value = code;
 
-                const params = new URLSearchParams();
-                const f = $('fromInput').value, t = $('toInput').value;
-                if (f) params.set('from', new Date(f).toISOString());
-                if (t) params.set('to', new Date(t).toISOString());
-                const qs = params.toString();
+    const params = new URLSearchParams();
+    const f = $('fromInput').value, t = $('toInput').value;
+    if (f) params.set('from', new Date(f).toISOString());
+    if (t) params.set('to', new Date(t).toISOString());
+    const qs = params.toString();
 
-                setBusy($('statsBtn'), true, 'Check stats', 'Loading…');
-                try {
-                    const res = await fetch(API + '/' + encodeURIComponent(code) + '/analytics' + (qs ? '?' + qs : ''), { headers: { 'Accept': 'application/json' } });
-                    if (!res.ok) { resetStats(); const er = await readError(res); showError(er.title, er.msg); return; }
-                    const d = await res.json();
-                    countTo($('sClicks'), Number(d.totalClicks));
-                    $('sDest').textContent = d.destinationUrl;
-                    $('sCreated').textContent = fmt(d.createdAt);
-                    $('sCode').textContent = d.code;
-                    $('sRange').textContent = (d.from || d.to)
-                        ? (d.from ? fmt(d.from) : 'Beginning') + ' to ' + (d.to ? fmt(d.to) : 'now')
-                        : 'All time';
-                } catch (err) {
-                    resetStats();
-                    showError('Can’t reach the API', 'Check your connection and try again.');
-                } finally {
-                    setBusy($('statsBtn'), false, 'Check stats', 'Loading…');
-                }
-            });
+    setBusy($('statsBtn'), true, 'Check stats', 'Loading…');
+    try{
+      const res = await fetch(API + '/' + encodeURIComponent(code) + '/analytics' + (qs ? '?' + qs : ''), {headers:{'Accept':'application/json'}});
+      if (!res.ok){ resetStats(); const er = await readError(res); showError(er.title, er.msg); return; }
+      const d = await res.json();
+      countTo($('sClicks'), Number(d.totalClicks));
+      $('sDest').textContent = d.destinationUrl;
+      $('sCreated').textContent = fmt(d.createdAt);
+      $('sCode').textContent = d.code;
+      $('sRange').textContent = (d.from || d.to)
+        ? (d.from ? fmt(d.from) : 'Beginning') + ' to ' + (d.to ? fmt(d.to) : 'now')
+        : 'All time';
+    }catch(err){
+      resetStats();
+      showError('Can’t reach the API', 'Check your connection and try again.');
+    }finally{
+      setBusy($('statsBtn'), false, 'Check stats', 'Loading…');
+    }
+  });
 
-            /* ---------- theme ---------- */
-            const root = document.documentElement, mq = window.matchMedia('(prefers-color-scheme: dark)');
-            const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : mq.matches;
-            const paintTheme = () => { $('themeBtn').textContent = isDark() ? 'Light' : 'Dark'; };
-            $('themeBtn').addEventListener('click', () => {
-                const n = isDark() ? 'light' : 'dark';
-                root.dataset.theme = n;
-                try { localStorage.setItem('theme', n); } catch (e) { }
-                paintTheme();
-            });
-            if (mq.addEventListener) mq.addEventListener('change', paintTheme);
-            paintTheme();
+  /* ---------- theme ---------- */
+  const root = document.documentElement, mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : mq.matches;
+  const paintTheme = () => { $('themeBtn').textContent = isDark() ? 'Light' : 'Dark'; };
+  $('themeBtn').addEventListener('click', () => {
+    const n = isDark() ? 'light' : 'dark';
+    root.dataset.theme = n;
+    try{ localStorage.setItem('theme', n); }catch(e){}
+    paintTheme();
+  });
+  if (mq.addEventListener) mq.addEventListener('change', paintTheme);
+  paintTheme();
 
-            checkHealth();
-        })();
-    </script>
+  checkHealth();
+})();
+</script>
 </body>
-
 </html>
