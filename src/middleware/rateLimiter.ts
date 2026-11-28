@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { redis } from "../cache/redis.js";
+import { randomUUID } from "crypto";
 
 interface RateLimiterOptions {
     windowMs: number; // e.g. 60000 = 60 seconds
@@ -19,13 +20,13 @@ export function rateLimiter(options: RateLimiterOptions) {
         const clearBefore = now - windowMs;
 
         try {
-            // Run atomic Redis pipeline
-            const pipeline = redis.pipeline();
+            // MULTI/EXEC transaction — all 4 commands execute atomically, no client can interleave
+            const pipeline = redis.multi();
             // 1. Remove entries older than the current sliding window
             pipeline.zremrangebyscore(key, 0, clearBefore);
             // 2. Add current request timestamp as score & member
             // Fixed (Score stays 'now', but member is guaranteed unique):
-            pipeline.zadd(key, now, `${now}:${Math.random().toString(36).slice(2, 7)}`);
+            pipeline.zadd(key, now, `${now}:${randomUUID()}`);
             // 3. Count total requests in this sliding window
             pipeline.zcard(key);
             // 4. Set TTL so inactive keys self-delete from Redis memory

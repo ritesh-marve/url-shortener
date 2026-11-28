@@ -33,14 +33,28 @@ router.get("/:code", async (req: Request, res: Response, next: NextFunction) => 
 
         // 🚀 Non-blocking asynchronous click event push to BullMQ
         clickQueue
-            .add("click", {
-                eventId: randomUUID(),
-                linkId: link.id,
-                clickedAt: new Date().toISOString(),
-            })
+            .add(
+                "click",
+                {
+                    eventId: randomUUID(),
+                    linkId: link.id,
+                    clickedAt: new Date().toISOString(),
+                },
+                {
+                    attempts: 3,           // retry up to 3 times on failure
+                    backoff: {
+                        type: "exponential",
+                        delay: 1000,       // 1s → 2s → 4s
+                    },
+                    removeOnComplete: { count: 100 },  // keep last 100 for debugging
+                    removeOnFail: { count: 50 },  // keep last 50 for inspection
+                }
+            )
             .catch((err) => {
-                // If queue fails, log error but DO NOT block the redirect!
-                console.error("⚠️ Failed to enqueue click event:", err.message);
+                req.log.warn(
+                    { err, code },
+                    "Failed to enqueue click event; redirect will continue"
+                );
             });
 
         // 302 Found: Temporary redirect

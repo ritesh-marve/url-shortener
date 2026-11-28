@@ -7,7 +7,13 @@ import { rateLimiter } from "../middleware/rateLimiter.js";
 const router = Router();
 
 const createLinkSchema = z.object({
-    url: z.string().url("A valid HTTP or HTTPS URL is required"),
+    url: z
+        .string()
+        .url("A valid URL is required")
+        .refine(
+            (val) => val.startsWith("http://") || val.startsWith("https://"),
+            { message: "Only http:// and https:// URLs are allowed" }
+        ),
 });
 
 const analyticsQuerySchema = z.object({
@@ -46,7 +52,7 @@ router.post("/api/v1/links", createLinkLimiter, async (req: Request, res: Respon
         const link = await createLink(result.data.url);
         res.status(201).json({
             code: link.code,
-            shortUrl: `http://localhost:${env.PORT}/${link.code}`,
+            shortUrl: `${env.PUBLIC_BASE_URL}/${link.code}`,
             destinationUrl: link.destinationUrl,
             createdAt: link.createdAt,
         });
@@ -103,6 +109,16 @@ router.get("/api/v1/links/:code/analytics", analyticsLimiter, async (req: Reques
             });
             return;
         }
+
+        req.log.info(
+            {
+                code,
+                totalClicks: analytics.totalClicks,
+                from: analytics.from,
+                to: analytics.to,
+            },
+            "Analytics retrieved"
+        );
 
         res.status(200).json(analytics);
     } catch (err) {

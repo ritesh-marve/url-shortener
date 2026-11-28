@@ -8,6 +8,7 @@ const envSchema = z.object({
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
     REDIS_URL: z.string().default("redis://localhost:6379"),
     PORT: z.coerce.number().default(3000),
+    PUBLIC_BASE_URL: z.string().url(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
