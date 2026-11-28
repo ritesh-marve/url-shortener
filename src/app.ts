@@ -11,7 +11,7 @@ app.use(pinoHttp({ logger }));
 // Middleware: parses JSON request bodies
 app.use(express.json());
 
-
+app.use(express.static("public"));
 app.use(healthRoutes);
 app.use(linksRoutes);
 app.use(redirectRoutes);

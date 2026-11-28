@@ -30,6 +30,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy compiled JS and Drizzle migrations from Stage 1
 COPY --from=builder /app/dist ./dist
 COPY drizzle ./drizzle
+COPY public ./public
 COPY drizzle.config.ts ./
 
 # Run as non-root user for container security
